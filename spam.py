@@ -2,15 +2,27 @@ from pyrogram import Client
 from pyrogram.enums.chat_type import ChatType
 import config
 
+
 async def main():
     try:
         api_id = config.api_id
         api_hash = config.api_hash
         phone_number = config.phone_number
 
-        client = Client(phone_number, api_id, api_hash)
+        if config.scheme != 'None':
+            proxy = {
+                "scheme": config.proxy,
+                "hostname": config.hostname,
+                "port": int(config.port),
+                "username": config.username,
+                "password": config.password
+            }
+            client = Client(phone_number, api_id, api_hash, proxy=proxy)
+        else:
+            client = Client(phone_number, api_id, api_hash)
 
         await client.connect()
+
         sent_code_info = await client.send_code(phone_number)
 
         while True:
@@ -26,10 +38,10 @@ async def main():
 
         print("Successfully signed in!")
 
-        dialogs : dict = {}
+        dialogs: dict = {}
 
         async for dialog in client.get_dialogs():
-            if dialog.chat.title and dialog.chat.type == ChatType.GROUP:
+            if dialog.chat.title and dialog.chat.type != ChatType.CHANNEL and dialog.chat.type != ChatType.BOT:
                 dialogs[dialog.chat.title] = dialog.chat.id
         while True:
             for dialog in dialogs.keys():
@@ -47,10 +59,11 @@ async def main():
             async for member in client.get_chat_members(chat_id):
                 try:
                     await client.send_message(member.user.id, text=text)
+                    await asyncio.sleep(60)
 
                 except Exception:
                     print("Unable to send message to " + member.user.username)
-
+                    await asyncio.sleep(60)
             print("Spam is done!")
 
     except Exception as e:
@@ -62,9 +75,3 @@ if __name__ == '__main__':
     import asyncio
 
     asyncio.run(main())
-
-
-
-
-
-
