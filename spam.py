@@ -1,6 +1,23 @@
 from pyrogram import Client
 from pyrogram.enums.chat_type import ChatType
 import config
+from pyrogram.raw.types.auth import *
+
+from databases.db_config import User, get_db
+
+
+def get_user(telegram_id: str):
+    db = next(get_db())
+    return db.query(User).filter(User.tg_id == telegram_id).first()
+
+
+def create_user(telegram_id: str):
+    db = next(get_db())
+
+    user = User(tg_id=telegram_id, spammed=True)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
 
 async def main():
@@ -15,56 +32,48 @@ async def main():
                 "hostname": config.hostname,
                 "port": int(config.port),
                 "username": config.username,
-                "password": config.password
+                "password": config.proxy_password
             }
-            client = Client(phone_number, api_id, api_hash, proxy=proxy)
+
         else:
-            client = Client(phone_number, api_id, api_hash)
+            proxy = None
 
-        await client.connect()
+        async with Client(f'sessions/{phone_number}', api_id, api_hash, proxy=proxy) as client:
 
-        sent_code_info = await client.send_code(phone_number)
+            print("Successfully signed in!")
 
-        while True:
-            try:
-                phone_code = input("Please enter your phone code: ")
+            dialogs: dict = {}
 
-                await client.sign_in(phone_number, sent_code_info.phone_code_hash, phone_code)
+            async for dialog in client.get_dialogs():
+                if dialog.chat.title and dialog.chat.type != ChatType.CHANNEL and dialog.chat.type != ChatType.BOT:
+                    dialogs[dialog.chat.title] = dialog.chat.id
+            while True:
+                for dialog in dialogs.keys():
+                    print(dialog + ', ID: ' + str(dialogs[dialog]))
 
-                break
+                print("Copy and paste neccessary chat ID. If you want to spam all chats, type 'finish'")
 
-            except Exception as e:
-                print(e)
+                chat_id = input()
 
-        print("Successfully signed in!")
+                if chat_id == "finish":
+                    print("Finished")
+                    break
 
-        dialogs: dict = {}
+                text = config.text.replace("\delpop", "\n")
+                me = await client.get_me()
+                async for member in client.get_chat_members(chat_id):
 
-        async for dialog in client.get_dialogs():
-            if dialog.chat.title and dialog.chat.type != ChatType.CHANNEL and dialog.chat.type != ChatType.BOT:
-                dialogs[dialog.chat.title] = dialog.chat.id
-        while True:
-            for dialog in dialogs.keys():
-                print(dialog + ', ID: ' + str(dialogs[dialog]))
+                    if me.id != member.user.id and get_user(member.user.id) is None:
+                        try:
+                            await client.send_message(member.user.id, text=text)
+                            create_user(member.user.id)
+                            await asyncio.sleep(60)
 
-            print("Copy and paste neccessary chat ID. If you want to spam all chats, type 'finish'")
-
-            chat_id = input()
-
-            if chat_id == "finish":
-                await client.disconnect()
-                break
-
-            text = config.text.replace("\delpop", "\n")
-            async for member in client.get_chat_members(chat_id):
-                try:
-                    await client.send_message(member.user.id, text=text)
-                    await asyncio.sleep(60)
-
-                except Exception:
-                    print("Unable to send message to " + member.user.username)
-                    await asyncio.sleep(60)
-            print("Spam is done!")
+                        except Exception as e:
+                            print("Unable to send message to " + member.user.username)
+                            print(f'Caused by: {e}')
+                            await asyncio.sleep(60)
+                print("Spam is done!")
 
     except Exception as e:
         print(e)
