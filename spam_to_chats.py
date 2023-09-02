@@ -22,7 +22,7 @@ async def main():
         else:
             proxy = None
 
-        async with Client(phone_number, api_id, api_hash, proxy=proxy) as client:
+        async with Client(f'sessions/{phone_number}', api_id, api_hash, proxy=proxy) as client:
 
             print("Successfully signed in!")
 
