@@ -17,12 +17,16 @@ git clone https://github.com/Amir23714/telegram_spamer.git
 ```bash
 cd telegram_spamer
 ```
+4.
+```bash
+pip install -r requirements.txt
+```
 
-4. Run setup file:
+5. Run setup file:
 ```bash
 python setup.py
 ```
-5. Run the script:
+6. Run the script:
 ```bash
 python spam.py
 ```
