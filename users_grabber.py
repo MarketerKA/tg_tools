@@ -84,7 +84,7 @@ async def main():
 
 
     except Exception as e:
-        print(e)
+        raise e
         await asyncio.sleep(30)
         return
 
