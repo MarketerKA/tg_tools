@@ -34,3 +34,10 @@ class UsersBase(Base):
     id = Column(Integer, primary_key=True, index=True)
     tg_id = Column(String, index=True)
     tg_class = Column(Integer, index=True)
+
+class Worker(Base):
+    __tablename__ = 'workers'
+
+    id = Column(Integer, primary_key=True, index=True)
+    tg_id = Column(String, index=True)
+    time = Column(Integer, index=True)

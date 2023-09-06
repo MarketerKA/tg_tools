@@ -14,10 +14,10 @@ def get_user(telegram_id: str):
     return returned
 
 
-def create_user(telegram_id: str, tg_class : int):
+def create_user(telegram_id: str, tg_class: int):
     db = next(get_db())
 
-    user = UsersBase(tg_id=telegram_id, tg_class = tg_class)
+    user = UsersBase(tg_id=telegram_id, tg_class=tg_class)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -57,11 +57,13 @@ async def main():
 
                 print("Copy and paste neccessary chat ID. If you want to finish, type 'finish'")
 
-                chat_id = input()
+                chat_ids = input()
 
-                if chat_id == "finish":
+                if chat_ids == "finish":
                     print("Finished")
                     break
+
+                chat_ids = chat_ids.split(' ')
 
                 import datetime
 
@@ -72,19 +74,20 @@ async def main():
 
                 me = await client.get_me()
 
-                async for message in client.get_chat_history(chat_id, offset_id=-1):
-                    if message.from_user is not None and message.from_user.id != me.id and not message.from_user.is_bot:
-                        if message.date.timestamp() < before:
-                            break
-                        if not get_user(message.from_user.id):
-                            create_user(message.from_user.id, 1)
-                            count+=1
-                print(f'Added {count} users')
+                for chat_id in chat_ids:
+                    async for message in client.get_chat_history(chat_id, offset_id=-1):
+                        if message.from_user is not None and message.from_user.id != me.id and not message.from_user.is_bot:
+                            if message.date.timestamp() < before:
+                                break
+                            if not get_user(message.from_user.username):
+                                create_user(message.from_user.username, 1)
+                                count += 1
+                    print(f'Added {count} users')
 
 
 
     except Exception as e:
-        raise e
+        print(e)
         await asyncio.sleep(30)
         return
 
